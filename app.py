@@ -32,7 +32,7 @@ MODE = os.getenv("MODE", "status").lower()
 status_cache = {name: None for name in SERVICES}
 status_history = {name: [] for name in SERVICES}  # keep last 60 samples
 
-# Test mode avoids real network calls
+# Test mode disables real network calls
 TEST_MODE = os.getenv("TEST_MODE", "0") == "1"
 
 def measure_latency(url):

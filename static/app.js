@@ -23,6 +23,7 @@ async function fetchData() {
 
 function updateTable(services) {
     const tbody = document.querySelector('#status-table tbody');
+    if (!tbody) return; // skip if table doesn't exist (e.g., latency mode only)
     tbody.innerHTML = '';
     for (const [name, status] of Object.entries(services)) {
         const row = document.createElement('tr');
@@ -50,8 +51,16 @@ function ensureChartContainer(name) {
         card.className = 'card';
 
         const header = document.createElement('div');
-        header.className = 'card-header';
-        header.textContent = name;
+        header.className = 'card-header d-flex justify-content-between';
+
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = name;
+
+        const statusSpan = document.createElement('span');
+        statusSpan.id = 'status-' + id;
+
+        header.appendChild(titleSpan);
+        header.appendChild(statusSpan);
 
         const body = document.createElement('div');
         body.className = 'card-body';
@@ -75,6 +84,17 @@ function updateCharts(historyData) {
         const data = points.map(p => p.value);
         const numeric = data.filter(v => v !== null);
         const maxVal = numeric.length ? Math.max(...numeric) : 100;
+
+        let statusText = 'N/A';
+        if (data.length) {
+            const last = data[data.length - 1];
+            statusText = last === null ? 'No response' :
+                         typeof last === 'number' && last <= 1 ? (last === 1 ? 'Operational' : 'Issue') :
+                         `${Math.round(last)} ms`;
+        }
+
+        const statusElem = document.getElementById('status-' + id);
+        if (statusElem) statusElem.textContent = statusText;
 
         let chart = charts[id];
         if (!chart) {
