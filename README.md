@@ -4,8 +4,13 @@ This simple Flask application displays the health status of various services use
 
 ## Features
 
+968ucl-codex/create-real-time-service-health-monitoring-app
+- Dashboard web page with live status updates and status history graphs
+- Background thread that checks services every minute and stores the last hour of results
+=======
 - Dashboard web page with live status updates
 - Background thread that checks services every minute
+main
 - Test mode that generates random status results without making network requests
 
 ## Setup
@@ -29,6 +34,15 @@ This simple Flask application displays the health status of various services use
 
 Edit the `SERVICES` dictionary in `app.py` to change or add service status URLs. Each entry should map the display name to a URL that returns HTTP `200` when the service is healthy.
 
+968ucl-codex/create-real-time-service-health-monitoring-app
+## History Graphs
+
+The dashboard shows a small graph for each service representing the last hour of
+recorded status checks (one check per minute). Values above the line indicate
+"Operational" status. These graphs refresh automatically when new data arrives.
+
+=======
+main
 ## Disclaimer
 
 The built-in checks are simplistic and may not reflect the real status of each provider. For production use, replace `check_service` with logic specific to each service's official status API.
