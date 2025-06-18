@@ -26,6 +26,7 @@ SERVICES = {
 }
 
 status_cache = {name: "Unknown" for name in SERVICES}
+status_history = {name: [] for name in SERVICES}  # keep last 60 entries per service
 
 # If TEST_MODE is set, we will not make real HTTP requests
 TEST_MODE = os.getenv("TEST_MODE", "0") == "1"
@@ -46,8 +47,15 @@ def check_service(name, url):
 
 def update_statuses():
     while True:
+        timestamp = datetime.utcnow().isoformat() + "Z"
         for name, url in SERVICES.items():
-            status_cache[name] = check_service(name, url)
+            status = check_service(name, url)
+            status_cache[name] = status
+            value = 1 if status == "Operational" else 0
+            history = status_history[name]
+            history.append({"timestamp": timestamp, "value": value})
+            if len(history) > 60:
+                history.pop(0)
         time.sleep(60)  # update every minute
 
 
@@ -67,6 +75,11 @@ def api_status():
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "services": status_cache,
     })
+
+
+@app.route("/api/history")
+def api_history():
+    return jsonify(status_history)
 
 
 if __name__ == "__main__":
