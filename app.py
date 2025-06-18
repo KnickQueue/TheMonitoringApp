@@ -27,7 +27,7 @@ SERVICES = {
 }
 
 # Choose monitoring mode: "latency" or "status"
-MODE = os.getenv("MODE", "status").lower()  # or set to "latency"
+MODE = os.getenv("MODE", "status").lower()
 
 status_cache = {name: None for name in SERVICES}
 status_history = {name: [] for name in SERVICES}  # keep last 60 samples
