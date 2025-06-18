@@ -73,6 +73,8 @@ function updateCharts(historyData) {
         const id = slug(name);
         const labels = points.map(p => new Date(p.timestamp).toLocaleTimeString());
         const data = points.map(p => p.value);
+        const numeric = data.filter(v => v !== null);
+        const maxVal = numeric.length ? Math.max(...numeric) : 100;
 
         let chart = charts[id];
         if (!chart) {
@@ -93,7 +95,10 @@ function updateCharts(historyData) {
                     animation: false,
                     responsive: true,
                     scales: {
-                        y: { min: 0, max: 1, ticks: { stepSize: 1 } }
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: maxVal + 50
+                        }
                     },
                     plugins: { legend: { display: false } }
                 }
@@ -102,6 +107,7 @@ function updateCharts(historyData) {
         } else {
             chart.data.labels = labels;
             chart.data.datasets[0].data = data;
+            chart.options.scales.y.suggestedMax = maxVal + 50;
             chart.update();
         }
     }

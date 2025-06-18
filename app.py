@@ -3,9 +3,10 @@ import random
 import threading
 import time
 from datetime import datetime
-
-from flask import Flask, jsonify, render_template
+from urllib.parse import urlparse
+import subprocess
 import requests
+from flask import Flask, jsonify, render_template
 
 app = Flask(__name__)
 
@@ -25,15 +26,37 @@ SERVICES = {
     "iDrive": "https://status.idrive.com",
 }
 
-status_cache = {name: "Unknown" for name in SERVICES}
-status_history = {name: [] for name in SERVICES}  # keep last 60 entries per service
+# Choose monitoring mode: "latency" or "status"
+MODE = os.getenv("MODE", "status").lower()  # or set to "latency"
 
-# If TEST_MODE is set, we will not make real HTTP requests
+status_cache = {name: None for name in SERVICES}
+status_history = {name: [] for name in SERVICES}  # keep last 60 samples
+
+# Test mode avoids real network calls
 TEST_MODE = os.getenv("TEST_MODE", "0") == "1"
 
+def measure_latency(url):
+    """Ping the host for the given URL and return the latency in ms."""
+    if TEST_MODE:
+        return random.uniform(20, 100)
+    host = urlparse(url).hostname
+    if not host:
+        return None
+    try:
+        result = subprocess.run([
+            "ping", "-c", "1", "-W", "2", host
+        ], capture_output=True, text=True)
+        if result.returncode == 0:
+            for line in result.stdout.splitlines():
+                if "time=" in line:
+                    ms = line.split("time=")[-1].split()[0]
+                    return float(ms)
+    except Exception:
+        pass
+    return None
 
 def check_service(name, url):
-    """Check the given service URL."""
+    """Check the given service URL for availability."""
     if TEST_MODE:
         return random.choice(["Operational", "Issues Detected"])
     try:
@@ -44,30 +67,30 @@ def check_service(name, url):
     except Exception as exc:
         return f"Error: {exc}"
 
-
 def update_statuses():
     while True:
         timestamp = datetime.utcnow().isoformat() + "Z"
         for name, url in SERVICES.items():
-            status = check_service(name, url)
-            status_cache[name] = status
-            value = 1 if status == "Operational" else 0
+            if MODE == "latency":
+                value = measure_latency(url)
+                status_cache[name] = value
+            else:
+                status = check_service(name, url)
+                value = 1 if status == "Operational" else 0
+                status_cache[name] = status
             history = status_history[name]
             history.append({"timestamp": timestamp, "value": value})
             if len(history) > 60:
                 history.pop(0)
-        time.sleep(60)  # update every minute
-
+        time.sleep(60)
 
 def start_background_thread():
     thread = threading.Thread(target=update_statuses, daemon=True)
     thread.start()
 
-
 @app.route("/")
 def index():
     return render_template("index.html")
-
 
 @app.route("/api/status")
 def api_status():
@@ -76,11 +99,9 @@ def api_status():
         "services": status_cache,
     })
 
-
 @app.route("/api/history")
 def api_history():
     return jsonify(status_history)
-
 
 if __name__ == "__main__":
     start_background_thread()
