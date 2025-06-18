@@ -45,15 +45,20 @@ function ensureChartContainer(name) {
         wrapper = document.createElement('div');
         wrapper.className = 'col-md-4';
         wrapper.id = 'chart-' + id;
+
         const card = document.createElement('div');
         card.className = 'card';
+
         const header = document.createElement('div');
         header.className = 'card-header';
         header.textContent = name;
+
         const body = document.createElement('div');
         body.className = 'card-body';
+
         const canvas = document.createElement('canvas');
         canvas.id = 'canvas-' + id;
+
         body.appendChild(canvas);
         card.appendChild(header);
         card.appendChild(body);
@@ -68,6 +73,7 @@ function updateCharts(historyData) {
         const id = slug(name);
         const labels = points.map(p => new Date(p.timestamp).toLocaleTimeString());
         const data = points.map(p => p.value);
+
         let chart = charts[id];
         if (!chart) {
             const ctx = document.getElementById('canvas-' + id).getContext('2d');
@@ -87,9 +93,9 @@ function updateCharts(historyData) {
                     animation: false,
                     responsive: true,
                     scales: {
-                        y: {min: 0, max: 1, ticks: {stepSize: 1}}
+                        y: { min: 0, max: 1, ticks: { stepSize: 1 } }
                     },
-                    plugins: {legend: {display: false}}
+                    plugins: { legend: { display: false } }
                 }
             });
             charts[id] = chart;
@@ -102,4 +108,4 @@ function updateCharts(historyData) {
 }
 
 fetchData();
-setInterval(fetchData, 30000);
+setInterval(fetchData, 30000); // refresh every 30 seconds
