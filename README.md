@@ -1,17 +1,17 @@
 # Service Health Monitoring App
 
-This simple Flask application displays the health status of various services used by an MSP on a single dashboard page. It polls a set of status URLs and shows the current state, refreshing automatically on the page.
+This Flask application pings a collection of services and displays their latency on a single dashboard of graphs. Each service is checked once per minute and the last hour of results is shown.
 
 ## Features
 
-968ucl-codex/create-real-time-service-health-monitoring-app
-- Dashboard web page with live status updates and status history graphs
-- Background thread that checks services every minute and stores the last hour of results
-=======
-- Dashboard web page with live status updates
-- Background thread that checks services every minute
-main
-- Test mode that generates random status results without making network requests
+- Dashboard web page with a graph for each service
+- Background thread that pings services every minute and stores the last hour of latency values
+- Test mode that generates random latency values without making network requests
+- `TEST_MODE=1` – Do not run real ping commands and instead use random latency values. Useful if the server does not have internet access or while developing.
+Edit the `SERVICES` dictionary in `app.py` to change or add service URLs. The hostname of each URL is pinged to measure response time.
+ping results (one check per minute). Latency is shown in milliseconds and the
+graphs update automatically.
+The built-in ping checks are simplistic and may not reflect the real status of each provider. For production use, replace `measure_latency` with logic specific to each service's official status API or performance metrics.
 
 ## Setup
 

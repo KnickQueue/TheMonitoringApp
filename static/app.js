@@ -1,39 +1,15 @@
 const charts = {};
 
-function statusClass(status) {
-    return status === 'Operational' ? 'text-success' : 'text-danger';
-}
-
 function slug(name) {
     return name.replace(/\s+/g, '-').toLowerCase();
 }
 
 async function fetchData() {
     try {
-        const [statusResp, historyResp] = await Promise.all([
-            axios.get('/api/status'),
-            axios.get('/api/history')
-        ]);
-        updateTable(statusResp.data.services);
-        updateCharts(historyResp.data);
+        const resp = await axios.get('/api/history');
+        updateCharts(resp.data);
     } catch (err) {
         console.error('Failed to fetch data:', err);
-    }
-}
-
-function updateTable(services) {
-    const tbody = document.querySelector('#status-table tbody');
-    tbody.innerHTML = '';
-    for (const [name, status] of Object.entries(services)) {
-        const row = document.createElement('tr');
-        const nameCell = document.createElement('td');
-        nameCell.textContent = name;
-        const statusCell = document.createElement('td');
-        statusCell.textContent = status;
-        statusCell.classList.add(statusClass(status));
-        row.appendChild(nameCell);
-        row.appendChild(statusCell);
-        tbody.appendChild(row);
     }
 }
 
@@ -46,7 +22,13 @@ function ensureChartContainer(name) {
         wrapper.className = 'col-md-4';
         wrapper.id = 'chart-' + id;
 
-        const card = document.createElement('div');
+        const numeric = data.filter(v => v !== null);
+        const maxVal = numeric.length ? Math.max(...numeric) : 100;
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: maxVal + 50
+                        }
+            chart.options.scales.y.suggestedMax = maxVal + 50;
         card.className = 'card';
 
         const header = document.createElement('div');

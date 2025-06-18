@@ -5,7 +5,8 @@ import time
 from datetime import datetime
 
 from flask import Flask, jsonify, render_template
-import requests
+import subprocess
+from urllib.parse import urlparse
 
 app = Flask(__name__)
 
@@ -25,33 +26,46 @@ SERVICES = {
     "iDrive": "https://status.idrive.com",
 }
 
-status_cache = {name: "Unknown" for name in SERVICES}
-status_history = {name: [] for name in SERVICES}  # keep last 60 entries per service
+status_cache = {name: None for name in SERVICES}  # last latency ms
+status_history = {name: [] for name in SERVICES}  # keep last 60 latency samples
 
-# If TEST_MODE is set, we will not make real HTTP requests
+# If TEST_MODE is set, we will not run real ping commands
 TEST_MODE = os.getenv("TEST_MODE", "0") == "1"
 
 
-def check_service(name, url):
-    """Check the given service URL."""
+def measure_latency(url):
+    """Ping the host for the given URL and return the latency in ms."""
     if TEST_MODE:
-        return random.choice(["Operational", "Issues Detected"])
+        return random.uniform(20, 100)
+    host = urlparse(url).hostname
+    if not host:
+        return None
     try:
-        resp = requests.get(url, timeout=5)
-        if resp.status_code == 200:
-            return "Operational"
-        return f"HTTP {resp.status_code}"
-    except Exception as exc:
-        return f"Error: {exc}"
+        result = subprocess.run([
+            "ping",
+            "-c",
+            "1",
+            "-W",
+            "2",
+            host,
+        ], capture_output=True, text=True)
+        if result.returncode == 0:
+            for line in result.stdout.splitlines():
+                if "time=" in line:
+                    ms = line.split("time=")[-1].split()[0]
+                    return float(ms)
+        return None
+    except Exception:
+        return None
 
 
 def update_statuses():
     while True:
         timestamp = datetime.utcnow().isoformat() + "Z"
         for name, url in SERVICES.items():
-            status = check_service(name, url)
-            status_cache[name] = status
-            value = 1 if status == "Operational" else 0
+            latency = measure_latency(url)
+            status_cache[name] = latency
+            value = latency
             history = status_history[name]
             history.append({"timestamp": timestamp, "value": value})
             if len(history) > 60:
