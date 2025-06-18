@@ -1,15 +1,39 @@
 const charts = {};
 
+function statusClass(status) {
+    return status === 'Operational' ? 'text-success' : 'text-danger';
+}
+
 function slug(name) {
     return name.replace(/\s+/g, '-').toLowerCase();
 }
 
 async function fetchData() {
     try {
-        const resp = await axios.get('/api/history');
-        updateCharts(resp.data);
+        const [statusResp, historyResp] = await Promise.all([
+            axios.get('/api/status'),
+            axios.get('/api/history')
+        ]);
+        updateTable(statusResp.data.services);
+        updateCharts(historyResp.data);
     } catch (err) {
         console.error('Failed to fetch data:', err);
+    }
+}
+
+function updateTable(services) {
+    const tbody = document.querySelector('#status-table tbody');
+    tbody.innerHTML = '';
+    for (const [name, status] of Object.entries(services)) {
+        const row = document.createElement('tr');
+        const nameCell = document.createElement('td');
+        nameCell.textContent = name;
+        const statusCell = document.createElement('td');
+        statusCell.textContent = status;
+        statusCell.classList.add(statusClass(status));
+        row.appendChild(nameCell);
+        row.appendChild(statusCell);
+        tbody.appendChild(row);
     }
 }
 
@@ -21,15 +45,20 @@ function ensureChartContainer(name) {
         wrapper = document.createElement('div');
         wrapper.className = 'col-md-4';
         wrapper.id = 'chart-' + id;
+
         const card = document.createElement('div');
         card.className = 'card';
+
         const header = document.createElement('div');
         header.className = 'card-header';
         header.textContent = name;
+
         const body = document.createElement('div');
         body.className = 'card-body';
+
         const canvas = document.createElement('canvas');
         canvas.id = 'canvas-' + id;
+
         body.appendChild(canvas);
         card.appendChild(header);
         card.appendChild(body);
@@ -46,6 +75,7 @@ function updateCharts(historyData) {
         const data = points.map(p => p.value);
         const numeric = data.filter(v => v !== null);
         const maxVal = numeric.length ? Math.max(...numeric) : 100;
+
         let chart = charts[id];
         if (!chart) {
             const ctx = document.getElementById('canvas-' + id).getContext('2d');
@@ -70,7 +100,7 @@ function updateCharts(historyData) {
                             suggestedMax: maxVal + 50
                         }
                     },
-                    plugins: {legend: {display: false}}
+                    plugins: { legend: { display: false } }
                 }
             });
             charts[id] = chart;
@@ -84,4 +114,4 @@ function updateCharts(historyData) {
 }
 
 fetchData();
-setInterval(fetchData, 30000);
+setInterval(fetchData, 30000); // refresh every 30 seconds
